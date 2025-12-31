@@ -1,7 +1,15 @@
 ﻿<Project Sdk="Dalamud.NET.Sdk/14.0.1">
     <PropertyGroup>
-        <PackageProjectUrl>https://github.com/kotenuki/Mappy.git</PackageProjectUrl>
+        <Name>Mappy</Name>
+        <InternalName>mappy</InternalName>
+        <Author>MidoriKami, harbingerftw</Author>
         <Version>3.1.6.11</Version>
+        <Punchline>A more versatile in-game map.</Punchline>
+        <Description>Replaces the in-game map with an ImGui implementation with several additional features.</Description>
+        <RepoUrl>https://github.com/harbingerftw/Mappy</RepoUrl>
+        <Tags>map;mapping;overlay;utility</Tags>
+        <CategoryTags>jobs</CategoryTags>
+        <AcceptsFeedback>true</AcceptsFeedback>
     </PropertyGroup>
     <ItemGroup>
       <None Include=".editorconfig" />
