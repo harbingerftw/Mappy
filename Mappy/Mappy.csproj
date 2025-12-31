@@ -1,4 +1,4 @@
-﻿<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+﻿<Project Sdk="Dalamud.NET.Sdk/14.0.1">
     <PropertyGroup>
         <PackageProjectUrl>https://github.com/kotenuki/Mappy.git</PackageProjectUrl>
         <Version>3.1.6.10</Version>
@@ -12,8 +12,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="SharpDX" Private="false" />
-        <Reference Include="SharpDX.Direct3D11" Private="false" />
-        <Reference Include="SharpDX.DXGI" Private="false" />
+        <Reference Include="TerraFX.Interop.Windows" Private="false" />
     </ItemGroup>
 </Project>

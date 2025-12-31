@@ -14,7 +14,7 @@ public partial class MapRenderer
     {
         if (AgentMap.Instance()->SelectedMapId != AgentMap.Instance()->CurrentMapId) return;
 
-        if (Service.ClientState.LocalPlayer is { } localPlayer) {
+        if (Service.ObjectTable.LocalPlayer is { } localPlayer) {
             var position = ImGui.GetWindowPos() +
                            DrawPosition +
                            (localPlayer.GetMapPosition() -
@@ -82,7 +82,7 @@ public partial class MapRenderer
     private void DrawPlayerIcon(Vector2 position)
     {
         if (!System.SystemConfig.ShowPlayerIcon) return;
-        if (Service.ClientState is not { LocalPlayer: { } player }) return;
+        if (Service.ObjectTable is not { LocalPlayer: { } player }) return;
 
         var texture = Service.TextureProvider.GetFromGameIcon(60443).GetWrapOrEmpty();
         var angle = -player.Rotation + MathF.PI / 2.0f;

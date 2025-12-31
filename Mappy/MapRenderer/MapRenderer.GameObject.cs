@@ -22,7 +22,7 @@ public partial class MapRenderer
     {
         if (AgentMap.Instance()->SelectedMapId != AgentMap.Instance()->CurrentMapId) return;
 
-        if (Service.ClientState is not { LocalPlayer: { } player }) return;
+        if (Service.ObjectTable is not { LocalPlayer: { } player }) return;
 
         if (System.SystemConfig.ShowRadar) {
             if ((Service.Condition.IsBoundByDuty() && System.SystemConfig.ShowRadarInDuties) || !Service.Condition.IsBoundByDuty()) {
@@ -53,7 +53,7 @@ public partial class MapRenderer
                     ObjectKind.BattleNpc when obj is { SubKind: (int)BattleNpcSubKind.Enemy, TargetObject: null } => 60424,
                     ObjectKind.BattleNpc when obj.SubKind == (int)BattleNpcSubKind.Pet => 60961,
                     ObjectKind.Treasure => 60003,
-                    ObjectKind.GatheringPoint => System.GatheringPointIconCache.GetValue(obj.DataId),
+                    ObjectKind.GatheringPoint => System.GatheringPointIconCache.GetValue(obj.BaseId),
                     ObjectKind.EventObj when IsAetherCurrent(obj) => 60653,
                     _ => 0
                 },
@@ -82,7 +82,7 @@ public partial class MapRenderer
             IPlayerCharacter { Level: > 0 } playerCharacter => $"Lv. {playerCharacter.Level} {playerCharacter.Name}",
             _ => obj.ObjectKind switch
             {
-                ObjectKind.GatheringPoint => System.GatheringPointNameCache.GetValue((obj.DataId, obj.Name.ToString())) ?? string.Empty,
+                ObjectKind.GatheringPoint => System.GatheringPointNameCache.GetValue((obj.BaseId, obj.Name.ToString())) ?? string.Empty,
                 ObjectKind.Treasure => obj.Name.ToString(),
                 ObjectKind.EventObj when IsAetherCurrent(obj) => obj.Name.ToString(),
                 _ => string.Empty
@@ -101,5 +101,5 @@ public partial class MapRenderer
         return csEventObject->EventHandler->Info.EventId.ContentId == EventHandlerContent.AetherCurrent;
     }
 
-    private bool IsBoss(IGameObject chara) => Service.DataManager.GetExcelSheet<BNpcBase>().GetRow(chara.DataId).Rank is 2 or 6;
+    private bool IsBoss(IGameObject chara) => Service.DataManager.GetExcelSheet<BNpcBase>().GetRow(chara.BaseId).Rank is 2 or 6;
 }

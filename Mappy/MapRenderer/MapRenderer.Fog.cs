@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -15,11 +14,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiLib.Classes;
-using SharpDX;
-using SharpDX.Direct3D11;
-using SharpDX.DXGI;
-using Device = SharpDX.Direct3D11.Device;
-using MapFlags = SharpDX.Direct3D11.MapFlags;
+using TerraFX.Interop.DirectX;
 
 namespace Mappy.MapRenderer;
 
@@ -160,33 +155,46 @@ public unsafe partial class MapRenderer
         var texturePointer = (Texture*)Marshal.ReadIntPtr((nint)componentMap, 0x270);
         if (texturePointer is null) return null;
 
-        var device = CppObject.FromPointer<Device>(Service.PluginInterface.UiBuilder.DeviceHandle);
+        var device = (ID3D11Device*)Service.PluginInterface.UiBuilder.DeviceHandle;
+        var texture = (ID3D11Texture2D*)texturePointer->D3D11Texture2D;
 
-        var texture = CppObject.FromPointer<Texture2D>((nint)texturePointer->D3D11Texture2D);
-        var desc = new Texture2DDescription
+        D3D11_TEXTURE2D_DESC description;
+        texture->GetDesc(&description);
+        
+        description.ArraySize = 1;
+        description.BindFlags = 0;
+        description.MipLevels = 1;
+        description.MiscFlags = 0;
+        description.CPUAccessFlags = (uint)D3D11_CPU_ACCESS_FLAG.D3D11_CPU_ACCESS_READ;
+        description.Usage = D3D11_USAGE.D3D11_USAGE_STAGING;
+        
+
+        ID3D11Texture2D* stagingTexture;
+        if (device->CreateTexture2D(&description, null, &stagingTexture) < 0)
+            return [];
+
+        ID3D11DeviceContext* context;
+        device->GetImmediateContext(&context);
+
+        context->CopyResource((ID3D11Resource*)texture, (ID3D11Resource*)stagingTexture);
+        
+        D3D11_MAPPED_SUBRESOURCE mapped;
+        if (context->Map((ID3D11Resource*)stagingTexture, 0, D3D11_MAP.D3D11_MAP_READ, 0, &mapped) < 0)
         {
-            ArraySize = 1,
-            BindFlags = BindFlags.None,
-            CpuAccessFlags = CpuAccessFlags.Read,
-            Format = texture.Description.Format,
-            Height = texture.Description.Height,
-            Width = texture.Description.Width,
-            MipLevels = 1,
-            OptionFlags = texture.Description.OptionFlags,
-            SampleDescription = new SampleDescription(1, 0),
-            Usage = ResourceUsage.Staging
-        };
+            stagingTexture->Release();
+            return [];
+        }
 
-        using var stagingTexture = new Texture2D(device, desc);
-        var context = device.ImmediateContext;
 
-        context.CopyResource(texture, stagingTexture);
-        device.ImmediateContext.MapSubresource(stagingTexture, 0, MapMode.Read, MapFlags.None, out var dataStream);
+        int bufferSize = (int)(description.Height * mapped.RowPitch);
+        byte[] pixelData = new byte[bufferSize];
+            
+        Marshal.Copy((IntPtr)mapped.pData, pixelData, 0, bufferSize);
 
-        using var pixelDataStream = new MemoryStream();
-        dataStream.CopyTo(pixelDataStream);
-
-        return pixelDataStream.ToArray();
+        context->Unmap((ID3D11Resource*)stagingTexture, 0);
+        stagingTexture->Release();
+        
+        return pixelData;
     }
 
     private void CleanupFogTexture()

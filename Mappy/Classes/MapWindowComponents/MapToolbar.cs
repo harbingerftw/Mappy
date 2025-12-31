@@ -11,6 +11,7 @@ using KamiLib.Extensions;
 using KamiLib.Window;
 using Lumina.Excel.Sheets;
 using Mappy.Windows;
+using MapType = Lumina.Excel.Sheets.MapType;
 
 namespace Mappy.Classes.MapWindowComponents;
 
@@ -58,11 +59,11 @@ public unsafe class MapToolbar
 
         ImGui.SameLine();
 
-        if (MappyGuiTweaks.IconButton(FontAwesomeIcon.ArrowsToCircle, "centerPlayer", "Center on Player") && Service.ClientState.LocalPlayer is not null) {
+        if (MappyGuiTweaks.IconButton(FontAwesomeIcon.ArrowsToCircle, "centerPlayer", "Center on Player") && Service.ObjectTable.LocalPlayer is not null) {
             // Don't center on player if we are already following the player.
             if (!System.SystemConfig.FollowPlayer) {
                 System.IntegrationsController.OpenOccupiedMap();
-                System.MapRenderer.CenterOnGameObject(Service.ClientState.LocalPlayer);
+                System.MapRenderer.CenterOnGameObject(Service.ObjectTable.LocalPlayer);
             }
         }
 
@@ -123,7 +124,7 @@ public unsafe class MapToolbar
         if (currentMap.RowId is 0) return;
 
         // If this is a region map
-        if (currentMap.Hierarchy is 3) {
+        if (currentMap.MapType.RowId == 3) {
             foreach (var marker in AgentMap.Instance()->MapMarkers) {
                 if (!DrawHelpers.IsRegionIcon(marker.MapMarker.IconId)) continue;
 

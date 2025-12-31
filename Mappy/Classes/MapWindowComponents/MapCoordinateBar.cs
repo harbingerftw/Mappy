@@ -22,7 +22,7 @@ public unsafe class MapCoordinateBar
         var offsetY = -AgentMap.Instance()->SelectedOffsetY;
         var scale = AgentMap.Instance()->SelectedMapSizeFactor;
 
-        var characterMapPosition = MapUtil.WorldToMap(Service.ClientState.LocalPlayer?.Position ?? Vector3.Zero, offsetX, offsetY, 0, (uint)scale);
+        var characterMapPosition = MapUtil.WorldToMap(Service.ObjectTable.LocalPlayer?.Position ?? Vector3.Zero, offsetX, offsetY, 0, (uint)scale);
         var characterPosition = $"Character  {characterMapPosition.X:F1}  {characterMapPosition.Y:F1}";
 
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2.0f * ImGuiHelpers.GlobalScale);

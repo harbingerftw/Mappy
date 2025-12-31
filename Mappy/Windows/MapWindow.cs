@@ -69,7 +69,7 @@ public class MapWindow : Window
         }
 
         switch (System.SystemConfig.CenterOnOpen) {
-            case CenterTarget.Player when Service.ClientState.LocalPlayer is { } localPlayer:
+            case CenterTarget.Player when Service.ObjectTable.LocalPlayer is { } localPlayer:
                 System.MapRenderer.CenterOnGameObject(localPlayer);
                 break;
 
@@ -273,7 +273,7 @@ public class MapWindow : Window
             AgentMap.Instance()->Hide();
         }
 
-        if (System.SystemConfig.FollowPlayer && Service.ClientState is { LocalPlayer: { } localPlayer }) {
+        if (System.SystemConfig.FollowPlayer && Service.ObjectTable is { LocalPlayer: { } localPlayer }) {
             System.MapRenderer.CenterOnGameObject(localPlayer);
         }
 
@@ -472,7 +472,7 @@ public class MapWindow : Window
             ActivationPath = "/center/player",
             Delegate = _ =>
             {
-                if (Service.ClientState.LocalPlayer is { } localPlayer) {
+                if (Service.ObjectTable.LocalPlayer is { } localPlayer) {
                     System.MapRenderer.CenterOnGameObject(localPlayer);
                 }
             },
