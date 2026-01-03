@@ -170,19 +170,20 @@ public unsafe partial class MapRenderer
         
 
         ID3D11Texture2D* stagingTexture;
-        if (device->CreateTexture2D(&description, null, &stagingTexture) < 0)
-            return [];
+        if (device->CreateTexture2D(&description, null, &stagingTexture)< 0)
+            return null;
 
         ID3D11DeviceContext* context;
         device->GetImmediateContext(&context);
 
-        context->CopyResource((ID3D11Resource*)texture, (ID3D11Resource*)stagingTexture);
+        context->CopyResource((ID3D11Resource*)stagingTexture, (ID3D11Resource*)texture);
         
         D3D11_MAPPED_SUBRESOURCE mapped;
         if (context->Map((ID3D11Resource*)stagingTexture, 0, D3D11_MAP.D3D11_MAP_READ, 0, &mapped) < 0)
         {
+            context->Release();
             stagingTexture->Release();
-            return [];
+            return null;
         }
 
 
@@ -192,6 +193,7 @@ public unsafe partial class MapRenderer
         Marshal.Copy((IntPtr)mapped.pData, pixelData, 0, bufferSize);
 
         context->Unmap((ID3D11Resource*)stagingTexture, 0);
+        context->Release();
         stagingTexture->Release();
         
         return pixelData;
