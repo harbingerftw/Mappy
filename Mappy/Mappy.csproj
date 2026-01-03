@@ -3,7 +3,7 @@
         <Name>Mappy</Name>
         <InternalName>mappy</InternalName>
         <Author>MidoriKami, harbingerftw</Author>
-        <Version>3.1.6.11</Version>
+        <Version>3.1.6.12</Version>
         <Punchline>A more versatile in-game map.</Punchline>
         <Description>Replaces the in-game map with an ImGui implementation with several additional features.</Description>
         <RepoUrl>https://github.com/harbingerftw/Mappy</RepoUrl>
@@ -12,14 +12,14 @@
         <AcceptsFeedback>true</AcceptsFeedback>
     </PropertyGroup>
     <ItemGroup>
-      <None Include=".editorconfig" />
+        <None Include=".editorconfig"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\KamiLib\KamiLib.csproj" />
+        <ProjectReference Include="..\KamiLib\KamiLib.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="TerraFX.Interop.Windows" Private="false" />
+        <Reference Include="TerraFX.Interop.Windows" Private="false"/>
     </ItemGroup>
 </Project>
