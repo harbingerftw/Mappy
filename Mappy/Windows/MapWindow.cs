@@ -46,8 +46,15 @@ public class MapWindow : Window
 
     public override bool DrawConditions() => IntegrationsController.ShouldShowMap();
 
-    public override void PreOpenCheck()
+    public override unsafe void PreOpenCheck()
     {
+        // If you managed to open the window while the agent says it should be closed
+        if (System.MapWindow.IsOpen && AgentMap.Instance()->AddonId is 0)
+        {
+            Service.Log.Debug("[OnShow] MapWindow can not be open now.");
+            IsOpen = false;
+        }
+        
         if (System.SystemConfig.KeepOpen) {
             IsOpen = true;
         }

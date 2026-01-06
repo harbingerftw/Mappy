@@ -23,8 +23,12 @@ public unsafe class IntegrationsController : IDisposable
 
     public IntegrationsController()
     {
-        showMapHook ??= Service.Hooker.HookFromAddress<AgentMap.Delegates.ShowMap>(AgentMap.MemberFunctionPointers.ShowMap, OnShowHook);
-        openMapHook ??= Service.Hooker.HookFromAddress<AgentMap.Delegates.OpenMap>(AgentMap.MemberFunctionPointers.OpenMap, OnOpenMapHook);
+        showMapHook ??=
+            Service.Hooker.HookFromAddress<AgentMap.Delegates.ShowMap>(AgentMap.MemberFunctionPointers.ShowMap,
+                OnShowHook);
+        openMapHook ??=
+            Service.Hooker.HookFromAddress<AgentMap.Delegates.OpenMap>(AgentMap.MemberFunctionPointers.OpenMap,
+                OnOpenMapHook);
 
         if (Service.ClientState is { IsPvP: false })
         {
@@ -53,7 +57,7 @@ public unsafe class IntegrationsController : IDisposable
         showMapHook?.Enable();
         openMapHook?.Enable();
 
-        System.AreaMapController.EnableIntegrations();
+        // System.AreaMapController.EnableIntegrations();
         System.FlagController.EnableIntegrations();
     }
 
@@ -64,35 +68,43 @@ public unsafe class IntegrationsController : IDisposable
         showMapHook?.Disable();
         openMapHook?.Disable();
 
-        System.AreaMapController.DisableIntegrations();
+        // System.AreaMapController.DisableIntegrations();
         System.FlagController.DisableIntegrations();
     }
 
     private void OnShowHook(AgentMap* agent, bool a1, bool a2) =>
         HookSafety.ExecuteSafe(() =>
         {
-            Service.Log.Debug("[OnShow] Beginning Show");
+            Service.Log.Verbose("[OnShow] Beginning Show");
 
+            // If you managed to open the window while the agent says it should be closed
+            if (System.MapWindow.IsOpen && AgentMap.Instance()->AddonId is 0)
+            {
+                Service.Log.Debug("[OnShow] MapWindow can not be open now.");
+                System.MapWindow.Close();
+            }
+            
             if (!ShouldShowMap())
             {
                 Service.Log.Debug("[OnShow] Condition to open map is rejected, aborting.");
                 return;
             }
 
-            if (AgentMap.Instance()->AddonId is not 0 && AgentMap.Instance()->CurrentMapId != AgentMap.Instance()->SelectedMapId)
+            if (AgentMap.Instance()->AddonId is not 0 &&
+                AgentMap.Instance()->CurrentMapId != AgentMap.Instance()->SelectedMapId)
             {
                 if (!System.SystemConfig.KeepOpen)
                 {
                     AgentMap.Instance()->Hide();
                 }
 
-                Service.Log.Debug("[OnShow] Vanilla tried to return to current map, aborted.");
+                Service.Log.Verbose("[OnShow] Vanilla tried to return to current map, aborted.");
                 return;
             }
 
             if (System.SystemConfig.KeepOpen)
             {
-                Service.Log.Debug("[OnShow] Keeping Open");
+                Service.Log.Verbose("[OnShow] Keeping Open");
                 return;
             }
 
@@ -140,7 +152,8 @@ public unsafe class IntegrationsController : IDisposable
 
             if (System.SystemConfig.AutoZoom)
             {
-                MapRenderer.MapRenderer.Scale = DrawHelpers.GetMapScaleFactor() * System.SystemConfig.AutoZoomScaleFactor;
+                MapRenderer.MapRenderer.Scale =
+                    DrawHelpers.GetMapScaleFactor() * System.SystemConfig.AutoZoomScaleFactor;
             }
         }, Service.Log, "Exception during OpenMap");
 
@@ -215,7 +228,8 @@ public unsafe class IntegrationsController : IDisposable
     {
         Service.Log.Debug("[OpenMap] Processing Bozja Event");
 
-        var eventMarker = agent->EventMarkers.FirstOrNull(marker => marker.DataId == mapInfo->FateId && marker.Flags == 0x40);
+        var eventMarker =
+            agent->EventMarkers.FirstOrNull(marker => marker.DataId == mapInfo->FateId && marker.Flags == 0x40);
         if (eventMarker is not null)
         {
             CenterOnMarker(eventMarker.Value);
@@ -257,7 +271,8 @@ public unsafe class IntegrationsController : IDisposable
 
     private static void CenterOnMarker(MapMarkerBase marker)
     {
-        var coordinates = new Vector2(marker.X, marker.Y) / 16.0f * DrawHelpers.GetMapScaleFactor() - DrawHelpers.GetMapOffsetVector();
+        var coordinates = new Vector2(marker.X, marker.Y) / 16.0f * DrawHelpers.GetMapScaleFactor() -
+                          DrawHelpers.GetMapOffsetVector();
 
         System.SystemConfig.FollowPlayer = false;
         System.MapRenderer.DrawOffset = -coordinates;
@@ -265,7 +280,8 @@ public unsafe class IntegrationsController : IDisposable
 
     private static void CenterOnMarker(MapMarkerData marker)
     {
-        var coordinates = marker.Position.AsMapVector() * DrawHelpers.GetMapScaleFactor() - DrawHelpers.GetMapOffsetVector();
+        var coordinates = marker.Position.AsMapVector() * DrawHelpers.GetMapScaleFactor() -
+                          DrawHelpers.GetMapOffsetVector();
 
         System.SystemConfig.FollowPlayer = false;
         System.MapRenderer.DrawOffset = -coordinates;
@@ -282,7 +298,8 @@ public unsafe class IntegrationsController : IDisposable
         return true;
     }
 
-    private static bool IsNamePlateAddonVisible() => !RaptureAtkUnitManager.Instance()->UiFlags.HasFlag(UIModule.UiFlags.Nameplates);
+    private static bool IsNamePlateAddonVisible() =>
+        !RaptureAtkUnitManager.Instance()->UiFlags.HasFlag(UIModule.UiFlags.Nameplates);
 
     private uint? GetMapIdForQuest(OpenMapInfo* mapInfo)
     {
@@ -311,10 +328,12 @@ public unsafe class IntegrationsController : IDisposable
         }
 
         var possibleQuests = Service.DataManager.GetExcelSheet<Quest>()
-            .Where(quest => quest is { IssuerLocation: { IsValid: true, RowId: not 0 } }).FirstOrNull(quest => IsNameMatch(quest.Name.ExtractText(), mapInfo));
+            .Where(quest => quest is { IssuerLocation: { IsValid: true, RowId: not 0 } })
+            .FirstOrNull(quest => IsNameMatch(quest.Name.ExtractText(), mapInfo));
 
         return possibleQuests?.IssuerLocation.Value.Map.RowId ?? null;
     }
 
-    private static bool IsNameMatch(string name, OpenMapInfo* mapInfo) => string.Equals(name, mapInfo->TitleString.ToString(), StringComparison.OrdinalIgnoreCase);
+    private static bool IsNameMatch(string name, OpenMapInfo* mapInfo) => string.Equals(name,
+        mapInfo->TitleString.ToString(), StringComparison.OrdinalIgnoreCase);
 }
