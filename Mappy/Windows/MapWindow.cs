@@ -207,7 +207,7 @@ public class MapWindow : Window
             }
         }
 
-        WindowName = $"Mappy Map Window{subLocationString}###MappyMapWindow";
+        WindowName = $"{subLocationString}###MappyMapWindow".TrimStart(['-',' ']);
 
         lastMapId = AgentMap.Instance()->SelectedMapId;
         lastAreaPlaceNameId = TerritoryInfo.Instance()->AreaPlaceNameId;

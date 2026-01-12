@@ -45,8 +45,10 @@ public unsafe class AddonAreaMapController : IDisposable
 
         if (addonAreaMap is null) return;
 
-        // addonAreaMap->OpenSoundEffectId = 0;
-        // addonAreaMap->Flags1A2 |= (byte)(1 << BitOperations.Log2(0x20));
+        if (System.SystemConfig.SuppressNativeMapOpenSound) {
+            addonAreaMap->OpenSoundEffectId = 0;
+            addonAreaMap->Flags1A2 |= (byte)(1 << BitOperations.Log2(0x20));
+        }
 
         Service.Framework.Update -= AddonAreaMapListener;
     }
@@ -63,8 +65,11 @@ public unsafe class AddonAreaMapController : IDisposable
         if (addonAreaMap is not null)
         {
             addonAreaMap->RootNode->SetPositionFloat(addonAreaMap->X, addonAreaMap->Y);
-            // addonAreaMap->OpenSoundEffectId = 23;
-            // addonAreaMap->Flags1A2 &= (byte)~(1 << BitOperations.Log2(0x20));
+            
+            if (System.SystemConfig.SuppressNativeMapOpenSound) {
+                addonAreaMap->OpenSoundEffectId = 23;
+                addonAreaMap->Flags1A2 &= (byte)~(1 << BitOperations.Log2(0x20));
+            }
         }
     }
 

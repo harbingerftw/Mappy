@@ -98,6 +98,8 @@ public class SystemConfig : CharacterConfiguration
     public bool ScaleTextWithZoom = true;
     public float AutoZoomScaleFactor = 0.33f;
 
+    public bool SuppressNativeMapOpenSound = true;
+
     // Do not persist this setting
     [JsonIgnore]
     public bool DebugMode = false;

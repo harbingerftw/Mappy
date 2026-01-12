@@ -3,7 +3,7 @@
         <Name>Mappy</Name>
         <InternalName>mappy</InternalName>
         <Author>MidoriKami, harbingerftw</Author>
-        <Version>3.1.7.0</Version>
+        <Version>3.1.7.1</Version>
         <Punchline>A more versatile in-game map.</Punchline>
         <Description>Replaces the in-game map with an ImGui implementation with several additional features.</Description>
         <RepoUrl>https://github.com/harbingerftw/Mappy</RepoUrl>
@@ -11,9 +11,6 @@
         <CategoryTags>jobs</CategoryTags>
         <AcceptsFeedback>true</AcceptsFeedback>
     </PropertyGroup>
-    <ItemGroup>
-        <None Include=".editorconfig"/>
-    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\KamiLib\KamiLib.csproj"/>
