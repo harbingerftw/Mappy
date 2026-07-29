@@ -43,6 +43,7 @@ public sealed class MappyPlugin : IDalamudPlugin
 
         System.FlagController = new FlagController();
         System.AreaMapController = new AddonAreaMapController();
+        System.ControllerInputController = new ControllerInputController();
         System.IntegrationsController = new IntegrationsController();
 
         Service.PluginInterface.UiBuilder.OpenMainUi += OpenMapWindow;
@@ -79,6 +80,7 @@ public sealed class MappyPlugin : IDalamudPlugin
         System.MapWindow.OnClose();
         System.WindowManager.Dispose();
         System.IntegrationsController.Dispose();
+        System.ControllerInputController.Dispose();
         System.AreaMapController.Dispose();
         System.FlagController.Dispose();
         System.MapRenderer.Dispose();

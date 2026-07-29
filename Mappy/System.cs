@@ -22,6 +22,7 @@ public static class System {
     public static MapRenderer.MapRenderer MapRenderer { get; set; }
     public static IntegrationsController IntegrationsController { get; set; }
     public static AddonAreaMapController AreaMapController { get; set; }
+    public static ControllerInputController ControllerInputController { get; set; }
     public static FlagController FlagController { get; set; }
     public static CommandManager CommandManager { get; set; }
     public static Teleporter Teleporter { get; set; }
