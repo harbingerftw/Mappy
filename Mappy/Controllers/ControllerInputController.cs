@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
-using Dalamud.Bindings.ImGui;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Input;
@@ -13,17 +12,14 @@ namespace Mappy.Controllers;
 public sealed unsafe class ControllerInputController : IDisposable
 {
     private const float StickDeadzone = 0.16f;
-    private const float CursorSpeed = 700.0f;
+    private const float PanSpeed = 700.0f;
     private const float ZoomSpeedMultiplier = 5.0f;
-    private const float CursorMargin = 24.0f;
 
     private readonly Hook<AtkModule.Delegates.HandleInput> handleInputHook;
     private readonly Stopwatch frameTimer = Stopwatch.StartNew();
 
-    private Vector2 leftStick;
-    private float rightStickY;
-    private Vector2 cursorScreenPosition;
-    private bool cursorInitialized;
+    private Vector2 rightStick;
+    private bool zoomModifierHeld;
 
     public ControllerInputController()
     {
@@ -47,11 +43,10 @@ public sealed unsafe class ControllerInputController : IDisposable
         return inputData is not null && inputData->IsInputIdPressed(InputId.PAD_MAP);
     }
 
-    public void ResetCursor()
+    public void ResetInput()
     {
-        cursorInitialized = false;
-        leftStick = Vector2.Zero;
-        rightStickY = 0.0f;
+        rightStick = Vector2.Zero;
+        zoomModifierHeld = false;
         frameTimer.Restart();
     }
 
@@ -65,7 +60,7 @@ public sealed unsafe class ControllerInputController : IDisposable
             CaptureSticks(inputData);
 
             if (suppressBeforeInput) {
-                StripGameplayInput(inputData);
+                StripGameplayInput(inputData, zoomModifierHeld);
             }
         }
 
@@ -76,7 +71,7 @@ public sealed unsafe class ControllerInputController : IDisposable
         }
 
         if (inputData is not null && (suppressBeforeInput || System.MapWindow.IsControllerMoveMode)) {
-            StripGameplayInput(inputData);
+            StripGameplayInput(inputData, zoomModifierHeld);
         }
 
         return result;
@@ -88,105 +83,82 @@ public sealed unsafe class ControllerInputController : IDisposable
         frameTimer.Restart();
 
         if (!System.MapWindow.IsControllerMoveMode) {
-            cursorInitialized = false;
+            rightStick = Vector2.Zero;
             return;
         }
 
-        var mapStart = System.MapWindow.MapDrawOffset;
-        var mapSize = System.MapWindow.MapContentSize;
-        if (mapSize.X <= CursorMargin * 2.0f || mapSize.Y <= CursorMargin * 2.0f) return;
+        var filteredRightStick = ApplyDeadzone(rightStick, StickDeadzone);
+        if (filteredRightStick == Vector2.Zero) return;
 
-        var minimum = mapStart + new Vector2(CursorMargin);
-        var maximum = mapStart + mapSize - new Vector2(CursorMargin);
+        if (zoomModifierHeld) {
+            var zoomInput = -filteredRightStick.Y;
+            if (zoomInput == 0.0f || System.SystemConfig.ZoomLocked) return;
 
-        if (!cursorInitialized) {
-            cursorScreenPosition = mapStart + mapSize / 2.0f;
-            cursorInitialized = true;
-        }
-
-        var filteredLeftStick = ApplyDeadzone(leftStick, StickDeadzone);
-        if (filteredLeftStick != Vector2.Zero) {
-            var nextPosition = cursorScreenPosition
-                + filteredLeftStick * CursorSpeed * (float)elapsedSeconds;
-            var clampedPosition = Vector2.Clamp(nextPosition, minimum, maximum);
-            var overflow = nextPosition - clampedPosition;
-
-            cursorScreenPosition = clampedPosition;
-
-            if (overflow != Vector2.Zero) {
-                var scale = Math.Max(MapRenderer.MapRenderer.Scale, 0.05f);
-                System.MapRenderer.DrawOffset -= overflow / scale;
+            if (System.SystemConfig.UseLinearZoom) {
+                MapRenderer.MapRenderer.Scale += System.SystemConfig.ZoomSpeed
+                    * zoomInput
+                    * ZoomSpeedMultiplier
+                    * (float)elapsedSeconds;
+            }
+            else {
+                var zoomBase = Math.Max(0.01f, 1.0f + System.SystemConfig.ZoomSpeed);
+                MapRenderer.MapRenderer.Scale *= MathF.Pow(
+                    zoomBase,
+                    zoomInput * ZoomSpeedMultiplier * (float)elapsedSeconds);
             }
 
-            MouseDevice.ScheduleCursorMove(
-                (int)MathF.Round(cursorScreenPosition.X),
-                (int)MathF.Round(cursorScreenPosition.Y));
-        }
-        else {
-            cursorScreenPosition = Vector2.Clamp(ImGui.GetMousePos(), minimum, maximum);
+            return;
         }
 
-        var filteredZoom = Math.Abs(rightStickY) <= StickDeadzone
-            ? 0.0f
-            : Math.Clamp(
-                (Math.Abs(rightStickY) - StickDeadzone) / (1.0f - StickDeadzone)
-                * Math.Sign(rightStickY),
-                -1.0f,
-                1.0f);
-
-        if (filteredZoom == 0.0f || System.SystemConfig.ZoomLocked) return;
-
-        if (System.SystemConfig.UseLinearZoom) {
-            MapRenderer.MapRenderer.Scale += System.SystemConfig.ZoomSpeed
-                * filteredZoom
-                * ZoomSpeedMultiplier
-                * (float)elapsedSeconds;
-        }
-        else {
-            var zoomBase = Math.Max(0.01f, 1.0f + System.SystemConfig.ZoomSpeed);
-            MapRenderer.MapRenderer.Scale *= MathF.Pow(
-                zoomBase,
-                filteredZoom * ZoomSpeedMultiplier * (float)elapsedSeconds);
-        }
+        var scale = Math.Max(MapRenderer.MapRenderer.Scale, 0.05f);
+        System.MapRenderer.DrawOffset -=
+            filteredRightStick * PanSpeed * (float)elapsedSeconds / scale;
     }
 
     private void CaptureSticks(UIInputData* inputData)
     {
         ref var gamepad = ref inputData->GamepadInputs;
 
-        leftStick = new Vector2(
-            Math.Clamp(gamepad.LeftStickX / 99.0f, -1.0f, 1.0f),
-            -Math.Clamp(gamepad.LeftStickY / 99.0f, -1.0f, 1.0f));
-        rightStickY = Math.Clamp(gamepad.RightStickY / 99.0f, -1.0f, 1.0f);
+        rightStick = new Vector2(
+            Math.Clamp(gamepad.RightStickX / 99.0f, -1.0f, 1.0f),
+            -Math.Clamp(gamepad.RightStickY / 99.0f, -1.0f, 1.0f));
+        zoomModifierHeld =
+            inputData->IsInputIdHeld(InputId.VIRTUAL_PAD_L1) ||
+            gamepad.Buttons.HasFlag(GamepadButtonsFlags.L1) ||
+            inputData->GamepadInputs2.Buttons.HasFlag(GamepadButtonsFlags.L1) ||
+            gamepad.L1 > 0.5f ||
+            inputData->GamepadInputs2.L1 > 0.5f;
     }
 
-    private static void StripGameplayInput(UIInputData* inputData)
+    private static void StripGameplayInput(UIInputData* inputData, bool stripZoomModifier)
     {
-        var previousFilter = inputData->CurrentGamepadInputsFilter;
-        inputData->CurrentGamepadInputsFilter |=
-            GamepadInputsFilter.LeftStick | GamepadInputsFilter.RightStick;
-        inputData->FilterGamepadInputs();
-        inputData->CurrentGamepadInputsFilter = previousFilter;
+        ClearRightStick(ref inputData->GamepadInputs);
+        ClearRightStick(ref inputData->GamepadInputs2);
 
-        ClearSticks(ref inputData->GamepadInputs);
-        ClearSticks(ref inputData->GamepadInputs2);
+        if (stripZoomModifier) {
+            ClearZoomModifier(ref inputData->GamepadInputs);
+            ClearZoomModifier(ref inputData->GamepadInputs2);
+        }
     }
 
-    private static void ClearSticks(ref GamepadInputData gamepad)
+    private static void ClearRightStick(ref GamepadInputData gamepad)
     {
-        gamepad.LeftStickX = 0;
-        gamepad.LeftStickY = 0;
         gamepad.RightStickX = 0;
         gamepad.RightStickY = 0;
 
-        gamepad.LeftStickLeft = 0.0f;
-        gamepad.LeftStickRight = 0.0f;
-        gamepad.LeftStickUp = 0.0f;
-        gamepad.LeftStickDown = 0.0f;
         gamepad.RightStickLeft = 0.0f;
         gamepad.RightStickRight = 0.0f;
         gamepad.RightStickUp = 0.0f;
         gamepad.RightStickDown = 0.0f;
+    }
+
+    private static void ClearZoomModifier(ref GamepadInputData gamepad)
+    {
+        gamepad.Buttons &= ~GamepadButtonsFlags.L1;
+        gamepad.ButtonsPressed &= ~GamepadButtonsFlags.L1;
+        gamepad.ButtonsReleased &= ~GamepadButtonsFlags.L1;
+        gamepad.ButtonsRepeat &= ~GamepadButtonsFlags.L1;
+        gamepad.L1 = 0.0f;
     }
 
     private static Vector2 ApplyDeadzone(Vector2 value, float deadzone)

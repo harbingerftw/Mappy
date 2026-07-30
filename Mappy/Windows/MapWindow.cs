@@ -23,7 +23,6 @@ namespace Mappy.Windows;
 public class MapWindow : Window
 {
     public Vector2 MapDrawOffset { get; private set; }
-    public Vector2 MapContentSize { get; private set; }
     public HoverFlags HoveredFlags { get; private set; }
     public bool ProcessingCommand { get; set; }
     public bool IsControllerMoveMode { get; private set; }
@@ -110,9 +109,8 @@ public class MapWindow : Window
         }
 
         MapDrawOffset = ImGui.GetCursorScreenPos();
-        MapContentSize = ImGui.GetContentRegionAvail();
         using var fade = ImRaii.PushStyle(ImGuiStyleVar.Alpha, System.SystemConfig.FadePercent, ShouldFade());
-        using (var renderChild = ImRaii.Child("render_child", MapContentSize, false, ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar)) {
+        using (var renderChild = ImRaii.Child("render_child", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar)) {
             if (!renderChild) return;
             if (!System.SystemConfig.AcceptedSpoilerWarning) {
                 DrawSpoilerWarning();
@@ -373,7 +371,7 @@ public class MapWindow : Window
             followPlayerBeforeControllerMove = System.SystemConfig.FollowPlayer;
             System.SystemConfig.FollowPlayer = false;
             IsControllerMoveMode = true;
-            System.ControllerInputController.ResetCursor();
+            System.ControllerInputController.ResetInput();
             return true;
         }
 
@@ -388,7 +386,7 @@ public class MapWindow : Window
         }
 
         IsControllerMoveMode = false;
-        System.ControllerInputController?.ResetCursor();
+        System.ControllerInputController?.ResetInput();
     }
 
     private void ProcessMouseScroll()
