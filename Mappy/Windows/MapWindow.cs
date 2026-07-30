@@ -25,8 +25,11 @@ public class MapWindow : Window
     public Vector2 MapDrawOffset { get; private set; }
     public HoverFlags HoveredFlags { get; private set; }
     public bool ProcessingCommand { get; set; }
+    public bool IsControllerMoveMode { get; private set; }
 
     private bool isDragStarted;
+    private bool followPlayerBeforeControllerMove;
+    private long lastControllerMapButtonTick;
     private Vector2 lastWindowSize;
     private uint lastMapId;
     private uint lastAreaPlaceNameId;
@@ -64,6 +67,8 @@ public class MapWindow : Window
 
     public override void OnOpen()
     {
+        ExitControllerMoveMode();
+
         if (ProcessingCommand) {
             ProcessingCommand = false;
             System.SystemConfig.FollowPlayer = false;
@@ -348,9 +353,40 @@ public class MapWindow : Window
 
     public override unsafe void OnClose()
     {
+        ExitControllerMoveMode();
         AgentMap.Instance()->Hide();
 
         SystemConfig.Save();
+    }
+
+    public bool HandleControllerMapButton()
+    {
+        if (!IsOpen) return false;
+
+        var now = global::System.Environment.TickCount64;
+        if (now - lastControllerMapButtonTick < 180) return true;
+        lastControllerMapButtonTick = now;
+
+        if (!IsControllerMoveMode) {
+            followPlayerBeforeControllerMove = System.SystemConfig.FollowPlayer;
+            System.SystemConfig.FollowPlayer = false;
+            IsControllerMoveMode = true;
+            System.ControllerInputController.ResetInput();
+            return true;
+        }
+
+        Close();
+        return true;
+    }
+
+    private void ExitControllerMoveMode()
+    {
+        if (IsControllerMoveMode) {
+            System.SystemConfig.FollowPlayer = followPlayerBeforeControllerMove;
+        }
+
+        IsControllerMoveMode = false;
+        System.ControllerInputController?.ResetInput();
     }
 
     private void ProcessMouseScroll()
@@ -398,10 +434,11 @@ public class MapWindow : Window
     }
 
     private unsafe bool ShouldFade() =>
-        System.SystemConfig.FadeMode.HasFlag(FadeMode.Always) ||
-        System.SystemConfig.FadeMode.HasFlag(FadeMode.WhenFocused) && IsFocused ||
-        System.SystemConfig.FadeMode.HasFlag(FadeMode.WhenMoving) && AgentMap.Instance()->IsPlayerMoving ||
-        System.SystemConfig.FadeMode.HasFlag(FadeMode.WhenUnFocused) && !IsFocused;
+        !IsControllerMoveMode &&
+        (System.SystemConfig.FadeMode.HasFlag(FadeMode.Always) ||
+         System.SystemConfig.FadeMode.HasFlag(FadeMode.WhenFocused) && IsFocused ||
+         System.SystemConfig.FadeMode.HasFlag(FadeMode.WhenMoving) && AgentMap.Instance()->IsPlayerMoving ||
+         System.SystemConfig.FadeMode.HasFlag(FadeMode.WhenUnFocused) && !IsFocused);
 
     private void RegisterCommands()
     {

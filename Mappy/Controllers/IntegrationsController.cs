@@ -90,6 +90,13 @@ public unsafe class IntegrationsController : IDisposable
                 return;
             }
 
+            if (System.MapWindow.IsOpen &&
+                ControllerInputController.IsMapButtonPressed() &&
+                System.MapWindow.HandleControllerMapButton())
+            {
+                return;
+            }
+
             if (AgentMap.Instance()->AddonId is not 0 &&
                 AgentMap.Instance()->CurrentMapId != AgentMap.Instance()->SelectedMapId)
             {
